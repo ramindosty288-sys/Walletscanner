@@ -30,9 +30,7 @@ jobs:
       - name: Install Android SDK
         run: |
           yes | sdkmanager --licenses || true
-          sdkmanager "platform-tools"
-          sdkmanager "platforms;android-35"
-          sdkmanager "build-tools;35.0.0"
+          sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
 
       - name: Create Android project
         shell: bash
@@ -77,7 +75,6 @@ jobs:
           cat > WalletScanner/gradle.properties <<'EOF'
           org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
           android.useAndroidX=true
-          android.nonTransitiveRClass=true
           EOF
 
           cat > WalletScanner/app/build.gradle <<'EOF'
@@ -90,26 +87,22 @@ jobs:
               compileSdk 35
 
               defaultConfig {
-                  applicationId 'com.walletscanner"
+                  applicationId 'com.walletscanner'
                   minSdk 23
                   targetSdk 35
                   versionCode 20
-                  versionName "2.0"
+                  versionName '2.0'
+              }
+
+              buildTypes {
+                  release {
+                      minifyEnabled false
+                  }
               }
 
               compileOptions {
                   sourceCompatibility JavaVersion.VERSION_17
                   targetCompatibility JavaVersion.VERSION_17
-              }
-
-              buildTypes {
-                  debug {
-                      minifyEnabled false
-                  }
-
-                  release {
-                      minifyEnabled false
-                  }
               }
           }
           EOF
@@ -158,7 +151,7 @@ jobs:
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
               <uses-permission
-                  android:name="android.permission.INTERNET"/>
+                  android:name="android.permission.INTERNET" />
 
               <application
                   android:theme="@style/AppTheme"
@@ -173,11 +166,13 @@ jobs:
                       android:screenOrientation="portrait">
 
                       <intent-filter>
+
                           <action
-                              android:name="android.intent.action.MAIN"/>
+                              android:name="android.intent.action.MAIN" />
 
                           <category
-                              android:name="android.intent.category.LAUNCHER"/>
+                              android:name="android.intent.category.LAUNCHER" />
+
                       </intent-filter>
 
                   </activity>
@@ -195,7 +190,6 @@ jobs:
           import android.os.Handler;
           import android.os.Looper;
           import android.view.Gravity;
-          import android.view.View;
           import android.widget.Button;
           import android.widget.EditText;
           import android.widget.LinearLayout;
@@ -226,92 +220,124 @@ jobs:
               protected void onCreate(Bundle savedInstanceState) {
                   super.onCreate(savedInstanceState);
 
-                  LinearLayout root = new LinearLayout(this);
-                  root.setOrientation(LinearLayout.VERTICAL);
-                  root.setPadding(25, 35, 25, 25);
+                  LinearLayout root =
+                          new LinearLayout(this);
 
-                  TextView title = new TextView(this);
-                  title.setText("🔎 Wallet Scanner");
+                  root.setOrientation(
+                          LinearLayout.VERTICAL);
+
+                  root.setPadding(
+                          25,
+                          35,
+                          25,
+                          25);
+
+                  TextView title =
+                          new TextView(this);
+
+                  title.setText(
+                          "🔎 Wallet Scanner");
+
                   title.setTextSize(28);
-                  title.setGravity(Gravity.CENTER);
+
+                  title.setGravity(
+                          Gravity.CENTER);
 
                   root.addView(title);
 
-                  TextView version = new TextView(this);
-                  version.setText("FREE 2.0");
+                  TextView version =
+                          new TextView(this);
+
+                  version.setText(
+                          "FREE 2.0");
+
                   version.setTextSize(16);
-                  version.setGravity(Gravity.CENTER);
+
+                  version.setGravity(
+                          Gravity.CENTER);
 
                   root.addView(version);
 
-                  address = new EditText(this);
-                  address.setHint("آدرس عمومی Bitcoin");
+                  address =
+                          new EditText(this);
+
+                  address.setHint(
+                          "آدرس عمومی Bitcoin");
+
                   address.setSingleLine(true);
 
                   root.addView(address);
 
-                  LinearLayout buttons = new LinearLayout(this);
-                  buttons.setOrientation(LinearLayout.HORIZONTAL);
+                  LinearLayout buttons =
+                          new LinearLayout(this);
 
-                  search = new Button(this);
-                  search.setText("🔍 بررسی");
+                  search =
+                          new Button(this);
 
-                  Button stop = new Button(this);
-                  stop.setText("⏹ توقف");
+                  search.setText(
+                          "🔍 بررسی");
+
+                  Button stop =
+                          new Button(this);
+
+                  stop.setText(
+                          "⏹ توقف");
 
                   buttons.addView(
                           search,
                           new LinearLayout.LayoutParams(
                                   0,
                                   LinearLayout.LayoutParams.WRAP_CONTENT,
-                                  1
-                          )
-                  );
+                                  1));
 
                   buttons.addView(
                           stop,
                           new LinearLayout.LayoutParams(
                                   0,
                                   LinearLayout.LayoutParams.WRAP_CONTENT,
-                                  1
-                          )
-                  );
+                                  1));
 
                   root.addView(buttons);
 
-                  progress = new ProgressBar(this);
-                  progress.setVisibility(View.GONE);
+                  progress =
+                          new ProgressBar(this);
+
+                  progress.setVisibility(
+                          ProgressBar.GONE);
 
                   root.addView(progress);
 
-                  result = new TextView(this);
+                  result =
+                          new TextView(this);
+
                   result.setTextSize(17);
-                  result.setPadding(10, 25, 10, 10);
+
+                  result.setPadding(
+                          10,
+                          25,
+                          10,
+                          10);
 
                   root.addView(result);
 
                   setContentView(root);
 
                   search.setOnClickListener(
-                          v -> checkWallet()
-                  );
+                          v -> checkWallet());
 
                   stop.setOnClickListener(
-                          v -> stopChecking()
-                  );
-              }
+                          v -> {
 
-              private void stopChecking() {
+                              running = false;
 
-                  running = false;
+                              progress.setVisibility(
+                                      ProgressBar.GONE);
 
-                  progress.setVisibility(View.GONE);
+                              search.setEnabled(true);
 
-                  search.setEnabled(true);
-
-                  result.setText(
-                          "⏹ بررسی متوقف شد."
-                  );
+                              result.setText(
+                                      "⏹ بررسی متوقف شد.");
+                          });
               }
 
               private void checkWallet() {
@@ -324,8 +350,7 @@ jobs:
                   if (wallet.isEmpty()) {
 
                       result.setText(
-                              "⚠️ ابتدا آدرس عمومی کیف پول را وارد کنید."
-                      );
+                              "ابتدا آدرس عمومی کیف پول را وارد کنید.");
 
                       return;
                   }
@@ -335,12 +360,10 @@ jobs:
                   search.setEnabled(false);
 
                   progress.setVisibility(
-                          View.VISIBLE
-                  );
+                          ProgressBar.VISIBLE);
 
                   result.setText(
-                          "⏳ در حال دریافت اطلاعات عمومی بلاکچین..."
-                  );
+                          "در حال دریافت اطلاعات عمومی بلاکچین...");
 
                   new Thread(() -> {
 
@@ -354,19 +377,18 @@ jobs:
                                   request(api);
 
                           JSONObject stats =
-                                  data.getJSONObject("chain_stats");
+                                  data.getJSONObject(
+                                          "chain_stats");
 
                           long received =
                                   stats.optLong(
                                           "funded_txo_sum",
-                                          0
-                                  );
+                                          0);
 
                           long spent =
                                   stats.optLong(
                                           "spent_txo_sum",
-                                          0
-                                  );
+                                          0);
 
                           long balance =
                                   received - spent;
@@ -374,42 +396,39 @@ jobs:
                           int transactions =
                                   stats.optInt(
                                           "tx_count",
-                                          0
-                                  );
+                                          0);
 
                           double btc =
                                   balance / 100000000.0;
 
                           String text =
-                                  "📍 آدرس\n\n"
-                                  + wallet
-                                  + "\n\n"
-                                  + "💰 موجودی\n"
-                                  + String.format(
+                                  "📍 آدرس عمومی\n\n"
+                                          + wallet
+                                          + "\n\n"
+                                          + "💰 موجودی\n"
+                                          + String.format(
                                           Locale.US,
                                           "%.8f BTC",
-                                          btc
-                                  )
-                                  + "\n\n"
-                                  + "📊 تعداد تراکنش‌ها\n"
-                                  + transactions;
+                                          btc)
+                                          + "\n\n"
+                                          + "📊 تعداد تراکنش‌ها\n"
+                                          + transactions;
 
                           if (balance > 0) {
 
                               text +=
-                                      "\n\n✅ این آدرس دارای موجودی است.";
+                                      "\n\n✅ دارای موجودی";
 
                           } else {
 
                               text +=
-                                      "\n\n⚪ موجودی این آدرس صفر است.";
+                                      "\n\n⚪ موجودی صفر";
                           }
 
                           handler.post(() -> {
 
                               progress.setVisibility(
-                                      View.GONE
-                              );
+                                      ProgressBar.GONE);
 
                               search.setEnabled(true);
 
@@ -423,22 +442,22 @@ jobs:
                           handler.post(() -> {
 
                               progress.setVisibility(
-                                      View.GONE
-                              );
+                                      ProgressBar.GONE);
 
                               search.setEnabled(true);
 
                               result.setText(
-                                      "❌ دریافت اطلاعات انجام نشد.\n\n"
-                                      + "آدرس را بررسی کنید یا اتصال اینترنت را چک کنید."
-                              );
+                                      "❌ خطا در بررسی آدرس\n\n"
+                                              + "آدرس را بررسی کنید یا "
+                                              + "اتصال اینترنت را چک کنید.");
                           });
                       }
 
                   }).start();
               }
 
-              private JSONObject request(String urlString)
+              private JSONObject request(
+                      String urlString)
                       throws Exception {
 
                   HttpURLConnection connection =
@@ -448,39 +467,41 @@ jobs:
 
                   connection.setRequestMethod("GET");
 
-                  connection.setConnectTimeout(15000);
-                  connection.setReadTimeout(15000);
+                  connection.setConnectTimeout(
+                          15000);
+
+                  connection.setReadTimeout(
+                          15000);
 
                   connection.setRequestProperty(
                           "User-Agent",
-                          "WalletScanner/2.0"
-                  );
+                          "WalletScanner/2.0");
 
-                  int responseCode =
+                  int code =
                           connection.getResponseCode();
 
-                  if (responseCode != 200) {
+                  if (code < 200 || code >= 300) {
 
                       connection.disconnect();
 
                       throw new Exception(
-                              "HTTP " + responseCode
-                      );
+                              "HTTP " + code);
                   }
 
                   BufferedReader reader =
                           new BufferedReader(
                                   new InputStreamReader(
-                                          connection.getInputStream()
-                                  )
-                          );
+                                          connection
+                                                  .getInputStream()));
 
                   StringBuilder response =
                           new StringBuilder();
 
                   String line;
 
-                  while ((line = reader.readLine()) != null) {
+                  while ((line =
+                          reader.readLine()) != null) {
+
                       response.append(line);
                   }
 
@@ -489,8 +510,7 @@ jobs:
                   connection.disconnect();
 
                   return new JSONObject(
-                          response.toString()
-                  );
+                          response.toString());
               }
           }
           EOF
@@ -503,7 +523,7 @@ jobs:
         working-directory: WalletScanner
         run: |
           chmod +x gradlew
-          ./gradlew clean assembleDebug --stacktrace
+          ./gradlew clean assembleDebug
 
       - name: Rename APK
         run: |
