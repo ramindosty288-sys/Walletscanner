@@ -1,4 +1,4 @@
-name: Build Wallet Scanner APK
+name: Wallet Scanner FREE 2.0
 
 on:
   workflow_dispatch:
@@ -7,17 +7,38 @@ on:
       - main
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Create Android project
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Android
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK
+        run: |
+          yes | sdkmanager --licenses || true
+          sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Create project
         shell: bash
         run: |
-          mkdir -p WalletScanner/app/src/main/java/com/example/walletscanner
+
+          mkdir -p WalletScanner/app/src/main/java/com/walletscanner
+          mkdir -p WalletScanner/app/src/main/res/values
+          mkdir -p WalletScanner/app/src/main/res/drawable
 
           cat > WalletScanner/settings.gradle <<'EOF'
           pluginManagement {
@@ -42,8 +63,13 @@ jobs:
 
           cat > WalletScanner/build.gradle <<'EOF'
           plugins {
-              id 'com.android.application' version '8.5.2' apply false
+              id 'com.android.application' version '8.7.3' apply false
           }
+          EOF
+
+          cat > WalletScanner/gradle.properties <<'EOF'
+          org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
+          android.useAndroidX=true
           EOF
 
           cat > WalletScanner/app/build.gradle <<'EOF'
@@ -52,53 +78,88 @@ jobs:
           }
 
           android {
-              namespace 'com.example.walletscanner'
+              namespace 'com.walletscanner'
               compileSdk 35
 
               defaultConfig {
-                  applicationId 'com.example.walletscanner'
-                  minSdk 26
+                  applicationId 'com.walletscanner'
+                  minSdk 23
                   targetSdk 35
-                  versionCode 1
-                  versionName '1.0'
+                  versionCode 20
+                  versionName '2.0'
               }
 
-              flavorDimensions "edition"
-
-              productFlavors {
-                  free {
-                      dimension "edition"
-                      applicationIdSuffix ".free"
-                      versionNameSuffix "-FREE"
-                  }
-
-                  pro {
-                      dimension "edition"
-                      applicationIdSuffix ".pro"
-                      versionNameSuffix "-PRO"
+              buildTypes {
+                  release {
+                      minifyEnabled false
                   }
               }
           }
           EOF
 
+          cat > WalletScanner/app/src/main/res/values/styles.xml <<'EOF'
+          <resources>
+
+              <style name="AppTheme"
+                  parent="android:style/Theme.Material.Light.NoActionBar">
+
+                  <item name="android:fontFamily">sans</item>
+                  <item name="android:colorAccent">#0088CC</item>
+                  <item name="android:statusBarColor">#FFFFFF</item>
+                  <item name="android:navigationBarColor">#FFFFFF</item>
+                  <item name="android:windowLightStatusBar">true</item>
+
+              </style>
+
+          </resources>
+          EOF
+
+          cat > WalletScanner/app/src/main/res/drawable/app_icon.xml <<'EOF'
+          <vector
+              xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="108dp"
+              android:height="108dp"
+              android:viewportWidth="108"
+              android:viewportHeight="108">
+
+              <path
+                  android:fillColor="#071D2B"
+                  android:pathData="M0,0 L108,0 L108,108 L0,108 Z"/>
+
+              <path
+                  android:fillColor="#00CFFF"
+                  android:pathData="M54,10 L62,43 L77,49 L62,55 L54,98 L46,55 L31,49 L46,43 Z"/>
+
+              <path
+                  android:fillColor="#FFFFFF"
+                  android:pathData="M54,22 L58,44 L68,49 L58,52 L54,84 L50,52 L40,49 L50,44 Z"/>
+
+          </vector>
+          EOF
+
           cat > WalletScanner/app/src/main/AndroidManifest.xml <<'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-              <uses-permission android:name="android.permission.INTERNET"/>
+              <uses-permission
+                  android:name="android.permission.INTERNET"/>
 
               <application
                   android:theme="@style/AppTheme"
-                  android:label="Wallet Scanner">
+                  android:label="Wallet Scanner"
+                  android:icon="@drawable/app_icon"
+                  android:allowBackup="false">
 
                   <activity
                       android:name=".MainActivity"
-                      android:screenOrientation="portrait"
-                      android:exported="true">
+                      android:exported="true"
+                      android:screenOrientation="portrait">
 
                       <intent-filter>
-                          <action android:name="android.intent.action.MAIN"/>
-                          <category android:name="android.intent.category.LAUNCHER"/>
+                          <action
+                              android:name="android.intent.action.MAIN"/>
+
+                          <category
+                              android:name="android.intent.category.LAUNCHER"/>
                       </intent-filter>
 
                   </activity>
@@ -108,343 +169,332 @@ jobs:
           </manifest>
           EOF
 
-          mkdir -p WalletScanner/app/src/main/res/values
-
-          cat > WalletScanner/app/src/main/res/values/styles.xml <<'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <resources>
-              <style name="AppTheme" parent="android:style/Theme.Material.Light.NoActionBar">
-                  <item name="android:fontFamily">sans</item>
-                  <item name="android:colorAccent">#1565C0</item>
-                  <item name="android:navigationBarColor">#FFFFFF</item>
-                  <item name="android:windowLightStatusBar">true</item>
-                  <item name="android:statusBarColor">#FFFFFF</item>
-              </style>
-          </resources>
-          EOF
-
-          cat > WalletScanner/app/src/main/java/com/example/walletscanner/MainActivity.java <<'EOF'
-          package com.example.walletscanner;
+          cat > WalletScanner/app/src/main/java/com/walletscanner/MainActivity.java <<'EOF'
+          package com.walletscanner;
 
           import android.app.Activity;
           import android.os.Bundle;
-          import android.graphics.Color;
+          import android.os.Handler;
+          import android.os.Looper;
           import android.view.Gravity;
-          import android.view.View;
-          import android.widget.Button;
-          import android.widget.EditText;
-          import android.widget.LinearLayout;
-          import android.widget.ScrollView;
-          import android.widget.TextView;
+          import android.widget.*;
 
-          import org.json.JSONArray;
           import org.json.JSONObject;
 
           import java.io.BufferedReader;
           import java.io.InputStreamReader;
           import java.net.HttpURLConnection;
           import java.net.URL;
-          import java.net.URLEncoder;
+          import java.util.Locale;
 
           public class MainActivity extends Activity {
 
+              EditText address;
               TextView result;
+              ProgressBar progress;
+              Button search;
+
+              Handler handler =
+                      new Handler(Looper.getMainLooper());
+
+              volatile boolean running = false;
 
               @Override
               protected void onCreate(Bundle savedInstanceState) {
+
                   super.onCreate(savedInstanceState);
 
-                  LinearLayout root = new LinearLayout(this);
-                  root.setOrientation(LinearLayout.VERTICAL);
-                  root.setPadding(35, 45, 35, 35);
+                  LinearLayout root =
+                          new LinearLayout(this);
 
-                  TextView title = new TextView(this);
-                  title.setText("Wallet Scanner");
+                  root.setOrientation(
+                          LinearLayout.VERTICAL);
+
+                  root.setPadding(
+                          25,35,25,25);
+
+                  TextView title =
+                          new TextView(this);
+
+                  title.setText(
+                          "🔎 Wallet Scanner");
+
                   title.setTextSize(28);
-                  title.setTextColor(Color.BLACK);
-                  title.setGravity(Gravity.CENTER);
+
+                  title.setGravity(
+                          Gravity.CENTER);
+
                   root.addView(title);
 
-                  TextView edition = new TextView(this);
+                  TextView version =
+                          new TextView(this);
 
-                  String packageName = getPackageName();
+                  version.setText(
+                          "FREE 2.0");
 
-                  if (packageName.endsWith(".pro")) {
-                      edition.setText("PRO • Bitcoin Scanner");
-                  } else {
-                      edition.setText("FREE • Bitcoin Scanner");
-                  }
+                  version.setGravity(
+                          Gravity.CENTER);
 
-                  edition.setTextSize(18);
-                  edition.setGravity(Gravity.CENTER);
-                  edition.setPadding(0, 10, 0, 25);
-                  root.addView(edition);
+                  version.setTextSize(16);
 
-                  EditText address = new EditText(this);
-                  address.setHint("Bitcoin address");
+                  root.addView(version);
+
+                  address =
+                          new EditText(this);
+
+                  address.setHint(
+                          "آدرس عمومی Bitcoin");
+
                   address.setSingleLine(true);
+
                   root.addView(address);
 
-                  Button scan = new Button(this);
-                  scan.setText("بررسی آدرس");
-                  root.addView(scan);
+                  LinearLayout buttons =
+                          new LinearLayout(this);
 
-                  result = new TextView(this);
-                  result.setTextSize(16);
-                  result.setPadding(0, 30, 0, 0);
+                  search =
+                          new Button(this);
+
+                  search.setText(
+                          "🔍 بررسی");
+
+                  Button stop =
+                          new Button(this);
+
+                  stop.setText(
+                          "⏹ توقف");
+
+                  buttons.addView(
+                          search,
+                          new LinearLayout.LayoutParams(
+                                  0,
+                                  -2,
+                                  1));
+
+                  buttons.addView(
+                          stop,
+                          new LinearLayout.LayoutParams(
+                                  0,
+                                  -2,
+                                  1));
+
+                  root.addView(buttons);
+
+                  progress =
+                          new ProgressBar(this);
+
+                  progress.setVisibility(
+                          ProgressBar.GONE);
+
+                  root.addView(progress);
+
+                  result =
+                          new TextView(this);
+
+                  result.setTextSize(17);
+
+                  result.setPadding(
+                          10,25,10,10);
+
                   root.addView(result);
 
-                  scan.setOnClickListener(v -> {
-                      String a = address.getText().toString().trim();
+                  setContentView(root);
 
-                      if (a.isEmpty()) {
-                          result.setText("لطفاً آدرس Bitcoin را وارد کنید.");
-                          return;
-                      }
+                  search.setOnClickListener(
+                          v -> checkWallet());
 
-                      result.setText("در حال بررسی...");
+                  stop.setOnClickListener(
+                          v -> {
 
-                      new Thread(() -> checkAddress(a)).start();
-                  });
+                              running = false;
 
-                  ScrollView scroll = new ScrollView(this);
-                  scroll.addView(root);
+                              progress.setVisibility(
+                                      ProgressBar.GONE);
 
-                  setContentView(scroll);
+                              result.setText(
+                                      "⏹ بررسی متوقف شد.");
+
+                              search.setEnabled(true);
+                          });
               }
 
-              private void checkAddress(String address) {
+              void checkWallet() {
 
-                  try {
-                      String encoded = URLEncoder.encode(address, "UTF-8");
+                  String a =
+                          address.getText()
+                          .toString()
+                          .trim();
 
-                      URL url = new URL(
-                              "https://blockstream.info/api/address/" + encoded
-                      );
+                  if(a.isEmpty()) {
 
-                      HttpURLConnection connection =
-                              (HttpURLConnection) url.openConnection();
+                      result.setText(
+                              "ابتدا آدرس را وارد کنید.");
 
-                      connection.setRequestMethod("GET");
-                      connection.setConnectTimeout(15000);
-                      connection.setReadTimeout(15000);
-
-                      int code = connection.getResponseCode();
-
-                      if (code != 200) {
-                          showResult("آدرس پیدا نشد یا API پاسخ مناسبی نداد.");
-                          return;
-                      }
-
-                      BufferedReader reader = new BufferedReader(
-                              new InputStreamReader(connection.getInputStream())
-                      );
-
-                      StringBuilder data = new StringBuilder();
-                      String line;
-
-                      while ((line = reader.readLine()) != null) {
-                          data.append(line);
-                      }
-
-                      reader.close();
-
-                      JSONObject json = new JSONObject(data.toString());
-
-                      JSONObject chain = json.getJSONObject("chain_stats");
-
-                      long received =
-                              chain.optLong("funded_txo_sum", 0);
-
-                      long spent =
-                              chain.optLong("spent_txo_sum", 0);
-
-                      long balance = received - spent;
-
-                      int txCount =
-                              chain.optInt("tx_count", 0);
-
-                      double btc =
-                              balance / 100000000.0;
-
-                      StringBuilder output = new StringBuilder();
-
-                      output.append("آدرس:\n");
-                      output.append(address);
-                      output.append("\n\n");
-
-                      output.append("موجودی:\n");
-                      output.append(btc);
-                      output.append(" BTC\n\n");
-
-                      output.append("تعداد تراکنش‌ها:\n");
-                      output.append(txCount);
-                      output.append("\n\n");
-
-                      if (balance > 0) {
-                          output.append("✓ موجودی غیرصفر است.\n");
-                      } else {
-                          output.append("موجودی فعلی صفر است.\n");
-                      }
-
-                      if (txCount > 0) {
-
-                          try {
-
-                              URL txUrl = new URL(
-                                      "https://blockstream.info/api/address/"
-                                              + encoded + "/txs"
-                              );
-
-                              HttpURLConnection txConnection =
-                                      (HttpURLConnection) txUrl.openConnection();
-
-                              txConnection.setRequestMethod("GET");
-                              txConnection.setConnectTimeout(15000);
-                              txConnection.setReadTimeout(15000);
-
-                              if (txConnection.getResponseCode() == 200) {
-
-                                  BufferedReader txReader =
-                                          new BufferedReader(
-                                                  new InputStreamReader(
-                                                          txConnection.getInputStream()
-                                                  )
-                                          );
-
-                                  StringBuilder txData = new StringBuilder();
-
-                                  while ((line = txReader.readLine()) != null) {
-                                      txData.append(line);
-                                  }
-
-                                  txReader.close();
-
-                                  JSONArray txs =
-                                          new JSONArray(txData.toString());
-
-                                  if (txs.length() > 0) {
-
-                                      JSONObject first =
-                                              txs.getJSONObject(0);
-
-                                      JSONObject status =
-                                              first.optJSONObject("status");
-
-                                      if (status != null) {
-
-                                          long blockTime =
-                                                  status.optLong(
-                                                          "block_time",
-                                                          0
-                                                  );
-
-                                          if (blockTime > 0) {
-
-                                              long now =
-                                                      System.currentTimeMillis()
-                                                              / 1000;
-
-                                              long tenYears =
-                                                      10L * 365L * 24L
-                                                              * 60L * 60L;
-
-                                              long age =
-                                                      now - blockTime;
-
-                                              output.append("\nآخرین فعالیت:\n");
-
-                                              if (age >= tenYears) {
-                                                  output.append(
-                                                          "بیش از ۱۰ سال پیش"
-                                                  );
-
-                                                  if (balance > 0) {
-                                                      output.append(
-                                                              "\n\n★ آدرس موردنظر: " +
-                                                              "موجودی غیرصفر و " +
-                                                              "حداقل ۱۰ سال بدون " +
-                                                              "فعالیت اخیر."
-                                                      );
-                                                  }
-
-                                              } else {
-                                                  output.append(
-                                                          "کمتر از ۱۰ سال پیش"
-                                                  );
-                                              }
-                                          }
-                                      }
-                                  }
-                              }
-
-                          } catch (Exception ignored) {
-                          }
-                      }
-
-                      showResult(output.toString());
-
-                  } catch (Exception e) {
-                      showResult(
-                              "خطا در بررسی آدرس:\n" +
-                              e.getMessage()
-                      );
+                      return;
                   }
+
+                  running = true;
+
+                  search.setEnabled(false);
+
+                  progress.setVisibility(
+                          ProgressBar.VISIBLE);
+
+                  result.setText(
+                          "در حال دریافت اطلاعات عمومی بلاکچین...");
+
+                  new Thread(() -> {
+
+                      try {
+
+                          String url =
+                                  "https://blockstream.info/api/address/"
+                                  + a;
+
+                          JSONObject data =
+                                  request(url);
+
+                          JSONObject stats =
+                                  data.getJSONObject(
+                                          "chain_stats");
+
+                          long received =
+                                  stats.optLong(
+                                          "funded_txo_sum",
+                                          0);
+
+                          long spent =
+                                  stats.optLong(
+                                          "spent_txo_sum",
+                                          0);
+
+                          long balance =
+                                  received - spent;
+
+                          int tx =
+                                  stats.optInt(
+                                          "tx_count",
+                                          0);
+
+                          double btc =
+                                  balance / 100000000.0;
+
+                          String text =
+                                  "📍 آدرس\n\n"
+                                  + a
+                                  + "\n\n"
+                                  + "💰 موجودی\n"
+                                  + String.format(
+                                      Locale.US,
+                                      "%.8f BTC",
+                                      btc)
+                                  + "\n\n"
+                                  + "📊 تعداد تراکنش‌ها\n"
+                                  + tx;
+
+                          if(balance > 0) {
+
+                              text +=
+                                  "\n\n✅ دارای موجودی";
+                          } else {
+
+                              text +=
+                                  "\n\n⚪ موجودی صفر";
+                          }
+
+                          handler.post(() -> {
+
+                              progress.setVisibility(
+                                      ProgressBar.GONE);
+
+                              search.setEnabled(true);
+
+                              if(running)
+                                  result.setText(text);
+                          });
+
+                      } catch(Exception e) {
+
+                          handler.post(() -> {
+
+                              progress.setVisibility(
+                                      ProgressBar.GONE);
+
+                              search.setEnabled(true);
+
+                              result.setText(
+                                  "❌ آدرس معتبر نیست یا "
+                                  + "اتصال به شبکه برقرار نشد.");
+                          });
+                      }
+
+                  }).start();
               }
 
-              private void showResult(String text) {
+              JSONObject request(String url)
+                      throws Exception {
 
-                  runOnUiThread(() -> result.setText(text));
+                  HttpURLConnection connection =
+                          (HttpURLConnection)
+                                  new URL(url)
+                                  .openConnection();
+
+                  connection.setRequestMethod("GET");
+
+                  connection.setConnectTimeout(
+                          15000);
+
+                  connection.setReadTimeout(
+                          15000);
+
+                  connection.setRequestProperty(
+                          "User-Agent",
+                          "WalletScanner/2.0");
+
+                  BufferedReader reader =
+                          new BufferedReader(
+                              new InputStreamReader(
+                                  connection
+                                  .getInputStream()));
+
+                  StringBuilder response =
+                          new StringBuilder();
+
+                  String line;
+
+                  while((line =
+                          reader.readLine()) != null) {
+
+                      response.append(line);
+                  }
+
+                  reader.close();
+
+                  connection.disconnect();
+
+                  return new JSONObject(
+                          response.toString());
               }
           }
           EOF
 
-      - name: Install Android SDK
-        uses: android-actions/setup-android@v3
+          cd WalletScanner
 
-      - name: Install SDK packages
-        run: |
-          yes | sdkmanager --licenses || true
-          sdkmanager "platforms;android-35" "build-tools;35.0.0"
+          gradle wrapper --gradle-version 8.9
 
-      - name: Set up Java 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.7'
-
-      - name: Build Free APK
+      - name: Build APK
         working-directory: WalletScanner
-        run: gradle :app:assembleFreeDebug
-
-      - name: Build Pro APK
-        working-directory: WalletScanner
-        run: gradle :app:assembleProDebug
-
-      - name: Rename APK files
         run: |
-          cp WalletScanner/app/build/outputs/apk/free/debug/app-free-debug.apk WalletScanner-Free.apk
-          cp WalletScanner/app/build/outputs/apk/pro/debug/app-pro-debug.apk WalletScanner-Pro.apk
+          chmod +x gradlew
+          ./gradlew assembleDebug
 
-      - name: Upload APK files
+      - name: Rename APK
+        run: |
+          cp WalletScanner/app/build/outputs/apk/debug/app-debug.apk \
+             WalletScanner-FREE-2.0.apk
+
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: WalletScanner-APKs
-          path: |
-            WalletScanner-Free.apk
-            WalletScanner-Pro.apk
-          retention-days: 30
-
-      - name: Create Release when tag is pushed
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            WalletScanner-Free.apk
-            WalletScanner-Pro.apk
-          generate_release_notes: true
+          name: WalletScanner-FREE-2.0
+          path: WalletScanner-FREE-2.0.apk
